@@ -21,7 +21,7 @@ AxiosInstance.interceptors.request.use((config) => {
 AxiosInstance.interceptors.response.use(
     (response) => {
       // Simply return the response if no error
-      console.log("Error in code");
+      console.log("No error in code");
       return response;
     },
     (error) => {

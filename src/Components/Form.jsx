@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import AxiosInstance from "../Utils/AxiosInstance"; 
+import React, { useState } from "react";
+import useFetchData from "../hooks/useFetchData";
+import useSubmitForm from "../hooks/useSubmitForm";
 
 const CourseForm = () => {
   const [formData, setFormData] = useState({
@@ -15,14 +16,12 @@ const CourseForm = () => {
     location: "",
     time: "",
     year: "",
-    term: ""
+    term: "",
   });
 
-  const [specializations, setSpecializations] = useState([]);
-  const [preRequisites, setPreRequisites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const { data: specializations, loading: loadingSpecializations } = useFetchData("/api/specialization");
+  const { data: preRequisites, loading: loadingPreRequisites } = useFetchData("/api/coursename");
+  const { submitForm, loading: submitting, successMessage, errorMessage } = useSubmitForm("/api/add/course");
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   const timeSlots = [
@@ -35,95 +34,34 @@ const CourseForm = () => {
   const terms = ["term 1", "term 2"];
   const years = ["2024"];
 
-  // Fetch data from APIs using AxiosInstance
-  useEffect(() => {
-    const fetchSpecializations = async () => {
-      try {
-        const response = await AxiosInstance.get("/api/specialization");
-        setSpecializations(response.data);
-      } catch (error) {
-        console.error("Error fetching specializations:", error);
-      }
-    };
-
-    const fetchPreRequisites = async () => {
-      try {
-        const response = await AxiosInstance.get("/api/coursename");
-        setPreRequisites(response.data);
-      } catch (error) {
-        console.error("Error fetching prerequisites:", error);
-      }
-    };
-
-    const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([fetchSpecializations(), fetchPreRequisites()]);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setSuccessMessage("");
-    setErrorMessage("");
-
-    try {
-      const response = await AxiosInstance.post("/api/add/course", formData);
-  
-      if (response.status === 200) {
-        setSuccessMessage("Course added successfully!");
-        setFormData({
-          course_code: "",
-          name: "",
-          description: "",
-          specialization: "",
-          credit: "",
-          capacity: "",
-          faculty: "",
-          pre_requisites: "",
-          day: "",
-          location: "",
-          time: "",
-          year: "",
-          term: "",
-        });
-      } else {
-        // Ensure response.data is defined before accessing it
-        if (response.status === 400) {
-          setErrorMessage("Course code already exists"); // Use the custom message
-          return;
-        }
-        setErrorMessage(response.data?.message || "Failed to add course.");
-      }
-    } catch (error) {
-      // Check for 400 Bad Request
-      if (error.response && error.response.status === 400) {
-        // Ensure error.response.data exists before accessing message
-        setErrorMessage(error.response.data?.message || "Bad request. Please check your input.");
-        return;
-      }
-  
-      // Catch other errors and log them
-      console.error("Error submitting form:", error);
-      
-      // Check if error.response exists before accessing message
-      setErrorMessage(error.response?.data?.message || "An unexpected error occurred. Please try again.");
-    }
+    submitForm(formData, () => {
+      console.log("Form submission successful, resetting form...");
+      setFormData({
+        course_code: "",
+        name: "",
+        description: "",
+        specialization: "",
+        credit: "",
+        capacity: "",
+        faculty: "",
+        pre_requisites: "",
+        day: "",
+        location: "",
+        time: "",
+        year: "",
+        term: "",
+      });
+    });
   };
 
-  const isFormValid = () => {
-    return Object.values(formData).every((field) => field.trim() !== "");
-  };
-
-
-  if (loading) {
+  if (loadingSpecializations || loadingPreRequisites) {
     return <div>Loading...</div>;
   }
 
@@ -238,6 +176,7 @@ const CourseForm = () => {
             ))}
           </select>
         </div>
+        {/* Add other fields here */}
         <div className="mb-3">
           <label className="form-label">Day</label>
           <select
@@ -318,7 +257,7 @@ const CourseForm = () => {
             ))}
           </select>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={!isFormValid()}>
+        <button type="submit" className="btn btn-primary">
           Add Course
         </button>
       </form>
